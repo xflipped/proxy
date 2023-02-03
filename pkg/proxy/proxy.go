@@ -1,3 +1,4 @@
+// Copyright 2023 NJWS, INC
 // Copyright 2022 Listware
 
 package proxy
@@ -12,6 +13,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 
+	"git.fg-tech.ru/listware/cmdb/pkg/cmdb/finder"
 	"git.fg-tech.ru/listware/cmdb/pkg/cmdb/qdsl"
 	"git.fg-tech.ru/listware/proto/sdk/pbflink"
 	"git.fg-tech.ru/listware/proto/sdk/pbtypes"
@@ -101,12 +103,14 @@ func (p *Proxy) Run(ctx context.Context) (err error) {
 }
 
 func (p *Proxy) directorFn(r *http.Request) {
+	p.log.Debugf("director: (%s)", r.Method)
+
 	if r.Method != http.MethodPost {
 		p.log.Errorf("only '%s' method allowed: %s", http.MethodPost, r.Method)
 		return
 	}
 
-	functionType := mux.Vars(r)["type"]
+	query := mux.Vars(r)["type"]
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -123,10 +127,14 @@ func (p *Proxy) directorFn(r *http.Request) {
 	batch := toFunction.GetInvocation()
 	tgt := batch.GetTarget()
 
-	if r.URL, err = p.queryURL(functionType, tgt.GetId()); err != nil {
+	var functionType *pbtypes.FunctionType
+	if functionType, r.URL, err = p.queryURL(query, tgt.GetId()); err != nil {
 		p.log.Error(err.Error())
 		return
 	}
+
+	tgt.Namespace = functionType.GetNamespace()
+	tgt.Type = functionType.GetType()
 
 	if body, err = proto.Marshal(&toFunction); err != nil {
 		p.log.Error(err.Error())
@@ -138,9 +146,14 @@ func (p *Proxy) directorFn(r *http.Request) {
 
 	r.Header.Add(forwardedHeader, r.Host)
 	r.Host = r.URL.Host
+
+	p.log.Debugf("director: (%+v) uri: %s", r.Header, r.RequestURI)
+
 }
 
 func (p *Proxy) modifyResponse(r *http.Response) (err error) {
+	p.log.Debugf("modify: (%s)", r.Status)
+
 	if r.StatusCode != http.StatusOK {
 		return p.noopResponse(r)
 	}
@@ -159,10 +172,19 @@ func (p *Proxy) modifyResponse(r *http.Response) (err error) {
 	r.Body = io.NopCloser(bytes.NewBuffer(body))
 	r.ContentLength = int64(len(body))
 	r.Header.Set("Content-Length", fmt.Sprint(r.ContentLength))
+
+	p.log.Debugf("modify: ContentLength (%d)", r.ContentLength)
+
 	return
 }
 
 func (p *Proxy) errorHandler(w http.ResponseWriter, r *http.Request, err error) {
+	p.log.Debugf("error handler: (%s)", r.Method)
+
+	if err != nil {
+		p.log.Error(err)
+	}
+
 	w.WriteHeader(http.StatusOK)
 	w.Write(p.noopData)
 }
@@ -182,27 +204,56 @@ func (p *Proxy) noopResponse(r *http.Response) (err error) {
 // FIXME add r.URL to DNS instead cmdb qdsl
 // r.Host = functionType
 // functionType = from dns
-func (p *Proxy) queryURL(functionType, id string) (u *url.URL, err error) {
-	query := fmt.Sprintf("*[?@._id == '%s'?].%s", id, functionType)
+func (p *Proxy) queryURL(query, id string) (functionType *pbtypes.FunctionType, u *url.URL, err error) {
+	p.log.Debugf("qdsl: (%s)", functionType)
 
-	elems, err := qdsl.Qdsl(p.ctx, query, qdsl.WithLink())
+	// read meta from func object
+	nodes, err := qdsl.Qdsl(p.ctx, query, qdsl.WithObject(), qdsl.WithId())
 	if err != nil {
 		return
 	}
-	elemslen := len(elems)
-	if elemslen == 0 {
-		err = fmt.Errorf("unknown function implementation: %s", query)
+
+	if len(nodes) == 0 {
+		err = fmt.Errorf("unknown function declaration: %s", query)
 		return
 	}
-	if elemslen > 1 {
-		err = fmt.Errorf("multiple implementation of function: %s", query)
+
+	if len(nodes) > 1 {
+		err = fmt.Errorf("multiple declaration of function: %s", query)
 		return
 	}
+
+	var function pbtypes.Function
+	if err = json.Unmarshal(nodes[0].Object, &function); err != nil {
+		return
+	}
+
+	p.log.Debugf("finder: (%s -> %s)", nodes[0].Id, id)
+
+	var name string
+	resp, err := finder.Links(p.ctx, nodes[0].Id.String(), id, name)
+	if err != nil {
+		return
+	}
+
+	if len(resp) == 0 {
+		err = fmt.Errorf("unknown function implementation: %s -> %s", query, id)
+		return
+	}
+
+	if len(resp) > 1 {
+		err = fmt.Errorf("multiple implementation of function: %s -> %s", functionType, id)
+		return
+	}
+
 	var link pbtypes.FunctionRoute
-	if err = json.Unmarshal(elems[0].Link, &link); err != nil {
+	if err = json.Unmarshal(resp[0].GetPayload(), &link); err != nil {
 		return
 	}
-	return url.Parse(link.Url)
+	functionType = function.GetFunctionType()
+
+	u, err = url.Parse(link.Url)
+	return
 }
 
 func handler(p *httputil.ReverseProxy) func(http.ResponseWriter, *http.Request) {
