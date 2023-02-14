@@ -2,13 +2,13 @@ module git.fg-tech.ru/listware/proxy
 
 go 1.19
 
-replace git.fg-tech.ru/listware/proto => github.com/foliagecp/proto v0.1.3
+replace git.fg-tech.ru/listware/proto => github.com/foliagecp/proto v0.1.4
 
-replace git.fg-tech.ru/listware/cmdb => github.com/foliagecp/cmdb v0.1.4
+replace git.fg-tech.ru/listware/cmdb => github.com/foliagecp/cmdb v0.1.5
 
 require (
-	git.fg-tech.ru/listware/cmdb v0.1.4
-	git.fg-tech.ru/listware/proto v0.1.3
+	git.fg-tech.ru/listware/cmdb v0.1.5
+	git.fg-tech.ru/listware/proto v0.1.4
 	github.com/gorilla/mux v1.8.0
 	github.com/urfave/cli/v2 v2.24.2
 	go.uber.org/zap v1.24.0

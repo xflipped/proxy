@@ -79,6 +79,8 @@ func (p *Proxy) Configure(opts ...Opt) (err error) {
 func (p *Proxy) Run(ctx context.Context) (err error) {
 	r := mux.NewRouter()
 	r.HandleFunc("/{type}", handler(p.reverseProxy))
+	r.HandleFunc("/readyz", p.readyz)
+	r.HandleFunc("/livez", p.livez)
 
 	srv := &http.Server{
 		Addr:    p.addr,
@@ -100,6 +102,14 @@ func (p *Proxy) Run(ctx context.Context) (err error) {
 		return
 	}
 	return srv.Shutdown(p.ctx)
+}
+
+func (p *Proxy) readyz(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+}
+
+func (p *Proxy) livez(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
 }
 
 func (p *Proxy) directorFn(r *http.Request) {
@@ -148,7 +158,6 @@ func (p *Proxy) directorFn(r *http.Request) {
 	r.Host = r.URL.Host
 
 	p.log.Debugf("director: (%+v) uri: %s", r.Header, r.RequestURI)
-
 }
 
 func (p *Proxy) modifyResponse(r *http.Response) (err error) {
@@ -205,7 +214,7 @@ func (p *Proxy) noopResponse(r *http.Response) (err error) {
 // r.Host = functionType
 // functionType = from dns
 func (p *Proxy) queryURL(query, id string) (functionType *pbtypes.FunctionType, u *url.URL, err error) {
-	p.log.Debugf("qdsl: (%s)", functionType)
+	p.log.Debugf("qdsl: (%s)", query)
 
 	// read meta from func object
 	nodes, err := qdsl.Qdsl(p.ctx, query, qdsl.WithObject(), qdsl.WithId())
