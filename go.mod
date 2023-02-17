@@ -2,7 +2,7 @@ module git.fg-tech.ru/listware/proxy
 
 go 1.19
 
-replace git.fg-tech.ru/listware/proto => github.com/foliagecp/proto v0.1.4
+replace git.fg-tech.ru/listware/proto => github.com/foliagecp/proto v0.1.5
 
 replace git.fg-tech.ru/listware/cmdb => github.com/foliagecp/cmdb v0.1.5
 

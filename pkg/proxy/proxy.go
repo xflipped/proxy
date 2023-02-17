@@ -217,7 +217,7 @@ func (p *Proxy) queryURL(query, id string) (functionType *pbtypes.FunctionType, 
 	p.log.Debugf("qdsl: (%s)", query)
 
 	// read meta from func object
-	nodes, err := qdsl.Qdsl(p.ctx, query, qdsl.WithObject(), qdsl.WithId())
+	nodes, err := qdsl.Qdsl(p.ctx, query, qdsl.WithObject(), qdsl.WithId(), qdsl.WithLink())
 	if err != nil {
 		return
 	}
@@ -234,6 +234,19 @@ func (p *Proxy) queryURL(query, id string) (functionType *pbtypes.FunctionType, 
 
 	var function pbtypes.Function
 	if err = json.Unmarshal(nodes[0].Object, &function); err != nil {
+		return
+	}
+
+	functionType = function.GetFunctionType()
+
+	// one instance of function
+	if !function.Grounded {
+		var link pbtypes.FunctionRoute
+		if err = json.Unmarshal(nodes[0].Link, &link); err != nil {
+			return
+		}
+
+		u, err = url.Parse(link.Url)
 		return
 	}
 
@@ -259,7 +272,6 @@ func (p *Proxy) queryURL(query, id string) (functionType *pbtypes.FunctionType, 
 	if err = json.Unmarshal(resp[0].GetPayload(), &link); err != nil {
 		return
 	}
-	functionType = function.GetFunctionType()
 
 	u, err = url.Parse(link.Url)
 	return
