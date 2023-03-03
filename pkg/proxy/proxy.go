@@ -35,7 +35,7 @@ var (
 )
 
 type Proxy struct {
-	addr         string
+	port         int
 	reverseProxy *httputil.ReverseProxy
 
 	log *zap.SugaredLogger
@@ -82,14 +82,16 @@ func (p *Proxy) Run(ctx context.Context) (err error) {
 	r.HandleFunc("/readyz", p.readyz)
 	r.HandleFunc("/livez", p.livez)
 
+	addr := fmt.Sprintf(":%d", p.port)
+
 	srv := &http.Server{
-		Addr:    p.addr,
+		Addr:    addr,
 		Handler: r,
 	}
 
 	p.ctx, p.cancel = context.WithCancel(ctx)
 
-	p.log.Debugf("listen & serve on: %s", p.addr)
+	p.log.Debugf("listen & serve on: %s", srv.Addr)
 
 	go func() {
 		if err = srv.ListenAndServe(); err != nil {
