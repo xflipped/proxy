@@ -15,7 +15,7 @@ FROM ubuntu:18.04
 LABEL maintainer="NJWS, Inc."
 
 RUN apt update && \
-    apt install ca-certificates netcat -y && \
+    apt install ca-certificates curl -y && \
     rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /build/proxy /usr/bin/

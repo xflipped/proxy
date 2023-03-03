@@ -12,17 +12,11 @@ var Proxy = &cli.App{
 	Usage:   "Flink's Stateful Functions Proxy",
 	Version: "v0.0.1",
 	Flags: []cli.Flag{
-		&cli.StringSliceFlag{
-			Name:    "broker",
-			Usage:   "Kafka broker URLs",
-			Value:   cli.NewStringSlice("0.0.0.0:19092"),
-			EnvVars: []string{"KAFKA_BROKER"},
-		},
 		&cli.StringFlag{
 			Name:    "listen",
 			Aliases: []string{"l"},
 			Usage:   "Address to listen on",
-			Value:   ":8801",
+			Value:   ":80",
 			EnvVars: []string{"STATEFUN_PROXY_ADDR"},
 		},
 		&cli.BoolFlag{
