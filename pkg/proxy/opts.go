@@ -8,9 +8,9 @@ import (
 
 type Opt func(*Proxy) error
 
-func WithAddr(addr string) Opt {
+func WithPort(port int) Opt {
 	return func(p *Proxy) (err error) {
-		p.addr = addr
+		p.port = port
 		return
 	}
 }

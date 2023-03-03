@@ -22,4 +22,4 @@ COPY --from=builder /build/proxy /usr/bin/
 
 RUN chmod +x /usr/bin/proxy
 
-CMD ["/usr/bin/proxy", "--debug"]
+CMD ["/usr/bin/proxy"]
