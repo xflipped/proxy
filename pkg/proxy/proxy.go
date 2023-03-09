@@ -78,7 +78,7 @@ func (p *Proxy) Configure(opts ...Opt) (err error) {
 
 func (p *Proxy) Run(ctx context.Context) (err error) {
 	r := mux.NewRouter()
-	r.HandleFunc("/{type}", handler(p.reverseProxy))
+	r.HandleFunc("/proxy/{type}", handler(p.reverseProxy))
 	r.HandleFunc("/readyz", p.readyz)
 	r.HandleFunc("/livez", p.livez)
 
