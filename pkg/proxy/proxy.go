@@ -191,10 +191,12 @@ func (p *Proxy) modifyResponse(r *http.Response) (err error) {
 
 func (p *Proxy) errorHandler(w http.ResponseWriter, r *http.Request, err error) {
 	p.log.Debugf("error handler: (%s)", r.Method)
-
 	if err != nil {
 		p.log.Error(err)
 	}
+
+	w.Header().Set("Content-Length", fmt.Sprint(int64(len(p.noopData))))
+	w.Header().Set("Content-Type", "application/octet-stream")
 
 	w.WriteHeader(http.StatusOK)
 	w.Write(p.noopData)
