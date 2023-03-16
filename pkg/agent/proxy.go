@@ -12,29 +12,23 @@ var Proxy = &cli.App{
 	Usage:   "Flink's Stateful Functions Proxy",
 	Version: "v0.0.1",
 	Flags: []cli.Flag{
-		&cli.StringSliceFlag{
-			Name:    "broker",
-			Usage:   "Kafka broker URLs",
-			Value:   cli.NewStringSlice("0.0.0.0:19092"),
-			EnvVars: []string{"KAFKA_BROKER"},
-		},
-		&cli.StringFlag{
-			Name:    "listen",
-			Aliases: []string{"l"},
-			Usage:   "Address to listen on",
-			Value:   ":8801",
-			EnvVars: []string{"STATEFUN_PROXY_ADDR"},
+		&cli.IntFlag{
+			Name:    "port",
+			Aliases: []string{"p"},
+			Usage:   "Port to listen on",
+			Value:   80,
+			EnvVars: []string{"PROXY_PORT"},
 		},
 		&cli.BoolFlag{
 			Name:    "debug",
 			Aliases: []string{"d"},
 			Usage:   "Debug log level",
 			Value:   false,
-			EnvVars: []string{"STATEFUN_PROXY_DEBUG"},
+			EnvVars: []string{"PROXY_DEBUG"},
 		},
 	},
 	Action: func(ctx *cli.Context) (err error) {
-		p, err := proxy.New(proxy.WithAddr(ctx.String("listen")))
+		p, err := proxy.New(proxy.WithPort(ctx.Int("port")))
 		if err != nil {
 			return
 		}

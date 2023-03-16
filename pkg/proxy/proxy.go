@@ -35,7 +35,7 @@ var (
 )
 
 type Proxy struct {
-	addr         string
+	port         int
 	reverseProxy *httputil.ReverseProxy
 
 	log *zap.SugaredLogger
@@ -78,18 +78,20 @@ func (p *Proxy) Configure(opts ...Opt) (err error) {
 
 func (p *Proxy) Run(ctx context.Context) (err error) {
 	r := mux.NewRouter()
-	r.HandleFunc("/{type}", handler(p.reverseProxy))
+	r.HandleFunc("/proxy/{type}", handler(p.reverseProxy))
 	r.HandleFunc("/readyz", p.readyz)
 	r.HandleFunc("/livez", p.livez)
 
+	addr := fmt.Sprintf(":%d", p.port)
+
 	srv := &http.Server{
-		Addr:    p.addr,
+		Addr:    addr,
 		Handler: r,
 	}
 
 	p.ctx, p.cancel = context.WithCancel(ctx)
 
-	p.log.Debugf("listen & serve on: %s", p.addr)
+	p.log.Debugf("listen & serve on: %s", srv.Addr)
 
 	go func() {
 		if err = srv.ListenAndServe(); err != nil {
@@ -189,10 +191,12 @@ func (p *Proxy) modifyResponse(r *http.Response) (err error) {
 
 func (p *Proxy) errorHandler(w http.ResponseWriter, r *http.Request, err error) {
 	p.log.Debugf("error handler: (%s)", r.Method)
-
 	if err != nil {
 		p.log.Error(err)
 	}
+
+	w.Header().Set("Content-Length", fmt.Sprint(int64(len(p.noopData))))
+	w.Header().Set("Content-Type", "application/octet-stream")
 
 	w.WriteHeader(http.StatusOK)
 	w.Write(p.noopData)
