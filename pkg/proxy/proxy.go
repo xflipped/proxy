@@ -199,7 +199,7 @@ func (p *Proxy) errorHandler(w http.ResponseWriter, r *http.Request, err error) 
 	w.Header().Set("Content-Type", "application/octet-stream")
 
 	w.WriteHeader(http.StatusOK)
-	w.Write(p.noopData)
+	w.Write(p.noopData) // nolint
 }
 
 func (p *Proxy) noopResponse(r *http.Response) (err error) {

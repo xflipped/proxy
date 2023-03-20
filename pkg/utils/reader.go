@@ -15,7 +15,7 @@ type reusableReader struct {
 
 func ReusableReader(r io.Reader) io.Reader {
 	readBuf := bytes.Buffer{}
-	readBuf.ReadFrom(r) // error handling ignored for brevity
+	readBuf.ReadFrom(r) // nolint
 	backBuf := bytes.Buffer{}
 
 	return reusableReader{
